@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Note App</title>
+  <style>
+    /* Add your CSS styles here */
+    body {
+      font-family: Arial, sans-serif;
+    }
+    #auth, #app {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    #notes div {
+      padding: 10px;
+      margin: 5px 0;
+      border: 1px solid #ccc;
+    }
+  </style>
+</head>
+<body>
+  <div id="auth">
+    <h2>Login</h2>
+    <input type="email" id="email" placeholder="Email">
+    <input type="password" id="password" placeholder="Password">
+    <button id="login">Login</button>
+    <p id="error-message" style="color: red; display: none;"></p>
+  </div>
+  <div id="app" style="display: none;">
+    <h1>Notes</h1>
+    <button id="logout">Logout</button>
+    <input type="text" id="search" placeholder="Search notes">
+    <button id="new-note">New Note</button>
+    <div id="notes"></div>
+  </div>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    let token = localStorage.getItem('token');
+
+    $(document).ready(function () {
+      if (token) {
+        $('#auth').hide();
+        $('#app').show();
+        loadNotes();
+      }
+
+      $('#login').click(async function () {
+        const email = $('#email').val();
+        const password = $('#password').val();
+
+        try {
+          const res = await $.ajax({
+            url: '/api/auth/login',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ email, password }),
+          });
+          token = res.token;
+          localStorage.setItem('token', token);
+          $('#auth').hide();
+          $('#app').show();
+          loadNotes();
+        } catch (err) {
+          $('#error-message').text('Login failed. Please check your credentials and try again.').show();
+        }
+      });
+
+      $('#logout').click(function () {
+        localStorage.removeItem('token');
+        $('#auth').show();
+        $('#app').hide();
+      });
+
+      $('#new-note').click(async function () {
+        const title = prompt('Title');
+        const content = prompt('Content');
+        const tags = prompt('Tags (comma separated)').split(',');
+        const color = prompt('Color');
+        const note = { title, content, tags, color };
+        try {
+          await $.ajax({
+            url: '/api/notes',
+            method: 'POST',
+            headers: { Authorization: 'Bearer ' + token },
+            contentType: 'application/json',
+            data: JSON.stringify(note),
+          });
+          loadNotes();
+        } catch (err) {
+          console.error('Error creating note:', err);
+        }
+      });
+
+      $('#search').on('input', async function () {
+        const query = $(this).val();
+        try {
+          const res = await $.ajax({
+            url: '/api/notes/search?query=' + query,
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + token },
+          });
+          displayNotes(res);
+        } catch (err) {
+          console.error('Error searching notes:', err);
+        }
+      });
+    });
+
+    async function loadNotes() {
+      try {
+        const res = await $.ajax({
+          url: '/api/notes',
+          method: 'GET',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        displayNotes(res);
+      } catch (err) {
+        console.error('Error loading notes:', err);
+      }
+    }
+
+    function displayNotes(notes) {
+      $('#notes').empty();
+      notes.forEach(note => {
+        const noteElement = `<div>${note.title}: ${note.content}</div>`;
+        $('#notes').append(noteElement);
+      });
+    }
+  </script>
+</body>
+</html>
