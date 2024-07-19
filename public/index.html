@@ -18,6 +18,31 @@
       padding: 10px;
       margin: 5px 0;
       border: 1px solid #ccc;
+      position: relative;
+    }
+    .note {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .note-content {
+      flex-grow: 1;
+    }
+    .color-picker {
+      display: none;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+    }
+    .color-picker input[type="color"] {
+      border: none;
+      padding: 0;
+      width: 25px;
+      height: 25px;
+      cursor: pointer;
+    }
+    .note:hover .color-picker {
+      display: block;
     }
   </style>
 </head>
@@ -125,9 +150,44 @@
     function displayNotes(notes) {
       $('#notes').empty();
       notes.forEach(note => {
-        const noteElement = `<div>${note.title}: ${note.content}</div>`;
+        const noteElement = `
+          <div class="note" style="background-color: ${note.color};">
+            <div class="note-content">${note.title}: ${note.content}</div>
+            <div class="color-picker">
+              <input type="color" onchange="changeNoteColor(${note.id}, this.value)">
+            </div>
+            <button onclick="deleteNote(${note.id})">Delete</button>
+          </div>`;
         $('#notes').append(noteElement);
       });
+    }
+
+    async function deleteNote(id) {
+      try {
+        await $.ajax({
+          url: `/api/notes/${id}`,
+          method: 'DELETE',
+          headers: { Authorization: 'Bearer ' + token },
+        });
+        loadNotes();
+      } catch (err) {
+        console.error('Error deleting note:', err);
+      }
+    }
+
+    async function changeNoteColor(id, color) {
+      try {
+        await $.ajax({
+          url: `/api/notes/${id}`,
+          method: 'PUT',
+          headers: { Authorization: 'Bearer ' + token },
+          contentType: 'application/json',
+          data: JSON.stringify({ color }),
+        });
+        loadNotes();
+      } catch (err) {
+        console.error('Error changing note color:', err);
+      }
     }
   </script>
 </body>

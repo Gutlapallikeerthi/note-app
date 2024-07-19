@@ -16,7 +16,7 @@ const mockUser = {
   password: 'password', // In a real application, store hashed passwords
 };
 
-const mockNotes = [
+let mockNotes = [
   {
     id: 1,
     title: 'Sample Note 1',
@@ -86,6 +86,24 @@ app.get('/api/notes/search', authMiddleware, (req, res) => {
   res.json(results);
 });
 
+app.delete('/api/notes/:id', authMiddleware, (req, res) => {
+  const noteId = parseInt(req.params.id);
+  mockNotes = mockNotes.filter(note => note.id !== noteId);
+  res.status(204).send();
+});
+
+app.put('/api/notes/:id', authMiddleware, (req, res) => {
+  const noteId = parseInt(req.params.id);
+  const { color } = req.body;
+  const note = mockNotes.find(note => note.id === noteId);
+  if (note) {
+    note.color = color;
+    res.json(note);
+  } else {
+    res.status(404).send('Note not found');
+  }
+});
+
 app.listen(PORT, () => {
-  console.log("started");
+  console.log("abc");
 });
